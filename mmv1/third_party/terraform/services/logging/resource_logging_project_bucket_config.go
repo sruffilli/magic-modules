@@ -15,10 +15,11 @@ import (
 
 var loggingProjectBucketConfigSchema = map[string]*schema.Schema{
 	"project": {
-		Type:        schema.TypeString,
-		Required:    true,
-		ForceNew:    true,
-		Description: `The parent project that contains the logging bucket.`,
+		Type:             schema.TypeString,
+		Required:         true,
+		ForceNew:         true,
+		DiffSuppressFunc: projectBucketConfigProjectDiffSuppress,
+		Description:      `The parent project that contains the logging bucket.`,
 	},
 	"name": {
 		Type:        schema.TypeString,
@@ -134,15 +135,25 @@ For example: jsonPayload.request.status`,
 	//UDP schema end
 }
 
+// normalizeProjectBucketConfigProject strips an optional "projects/" prefix
+// so that both "my-project" and "projects/my-project" resolve to the bare
+// project ID used in API paths and stored in state.
+func normalizeProjectBucketConfigProject(project string) string {
+	return strings.TrimPrefix(project, "projects/")
+}
+
+// projectBucketConfigProjectDiffSuppress treats "projects/{{id}}" and "{{id}}"
+// as the same value so that neither form of the ForceNew "project" field
+// triggers a replacement (e.g. after import, or when users follow the older
+// "projects/..." workaround).
+func projectBucketConfigProjectDiffSuppress(_, old, new string, _ *schema.ResourceData) bool {
+	return normalizeProjectBucketConfigProject(old) == normalizeProjectBucketConfigProject(new)
+}
+
 func projectBucketConfigID(d *schema.ResourceData, config *transport_tpg.Config) (string, error) {
-	projectID := d.Get("project").(string)
+	projectID := normalizeProjectBucketConfigProject(d.Get("project").(string))
 	location := d.Get("location").(string)
 	bucketID := d.Get("bucket_id").(string)
-
-	if strings.HasPrefix(projectID, "projects/") {
-		// Remove "projects/" prefix if it exists
-		projectID = strings.TrimPrefix(projectID, "projects/")
-	}
 
 	id := fmt.Sprintf("projects/%s/locations/%s/buckets/%s", projectID, location, bucketID)
 	return id, nil
@@ -225,19 +236,22 @@ func resourceLoggingProjectBucketConfigCreate(d *schema.ResourceData, meta inter
 	obj["cmekSettings"] = expandCmekSettings(d.Get("cmek_settings"))
 	obj["indexConfigs"] = expandIndexConfigs(d.Get("index_configs"))
 
-	url, err := tpgresource.ReplaceVars(d, config, transport_tpg.BaseUrl(Product, config)+"projects/{{project}}/locations/{{location}}/buckets:createAsync?bucketId={{bucket_id}}")
+	project, err := tpgresource.GetProject(d, config)
+	if err != nil {
+		return err
+	}
+	// The project may be given as "projects/{{id}}"; the API path already
+	// includes the "projects/" segment, so strip it to avoid a 404 on
+	// "projects/projects/{{id}}/...".
+	project = normalizeProjectBucketConfigProject(project)
+
+	url, err := tpgresource.ReplaceVars(d, config, fmt.Sprintf(transport_tpg.BaseUrl(Product, config)+"projects/%s/locations/{{location}}/buckets:createAsync?bucketId={{bucket_id}}", project))
 	if err != nil {
 		return err
 	}
 
 	log.Printf("[DEBUG] Creating new Bucket: %#v", obj)
-	billingProject := ""
-
-	project, err := tpgresource.GetProject(d, config)
-	if err != nil {
-		return err
-	}
-	billingProject = project
+	billingProject := project
 
 	// err == nil indicates that the billing_project value was found
 	if bp, err := tpgresource.GetBillingProject(d, config); err == nil {

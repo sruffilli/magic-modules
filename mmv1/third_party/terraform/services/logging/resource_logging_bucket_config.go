@@ -164,7 +164,18 @@ func resourceLoggingBucketConfigImportState(parent string) schema.StateFunc {
 				LoggingSinkResourceTypes)
 		}
 
-		if err := d.Set(parent, parts[1]+"/"+parts[2]); err != nil {
+		// Folder, organization and billing account bucket configs store the
+		// parent in the "{{parent_type}}/{{parent_id}}" form. The project
+		// bucket config, however, stores a bare project ID (matching what users
+		// configure and what projectBucketConfigID normalizes to). Storing
+		// "projects/{{project_id}}" there causes a permanent diff on the ForceNew
+		// "project" field after import. See
+		// https://github.com/hashicorp/terraform-provider-google/issues/15725
+		parentValue := parts[1] + "/" + parts[2]
+		if parent == "project" {
+			parentValue = parts[2]
+		}
+		if err := d.Set(parent, parentValue); err != nil {
 			return nil, fmt.Errorf("Error setting parent: %s", err)
 		}
 

@@ -74,28 +74,25 @@ func TestAccLoggingBucketConfigProject_basic(t *testing.T) {
 				Config: testAccLoggingBucketConfigProject_basic(context, 30),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccLoggingBucketConfigProject_basic(context, 20),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccLoggingBucketConfigProject_basic(context, 40),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -125,28 +122,25 @@ func TestAccLoggingBucketConfigProject_analyticsEnabled(t *testing.T) {
 				Config: testAccLoggingBucketConfigProject_basic(context, 30),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccLoggingBucketConfigProject_analyticsEnabled(context, true),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccLoggingBucketConfigProject_analyticsEnabled(context, false),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -176,19 +170,17 @@ func TestAccLoggingBucketConfigProject_cmekSettings(t *testing.T) {
 				Config: testAccLoggingBucketConfigProject_cmekSettings(context, keyRingName, cryptoKeyName, cryptoKeyNameUpdate),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccLoggingBucketConfigProject_cmekSettingsUpdate(context, keyRingName, cryptoKeyName, cryptoKeyNameUpdate),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -481,6 +473,12 @@ func TestAccLoggingBucketConfig_CreateBuckets_withCustomId(t *testing.T) {
 	configList := getLoggingBucketConfigs(context)
 
 	for res, config := range configList {
+		// The project bucket config stores a bare project ID on import and
+		// must round-trip exactly; other parents store "{{type}}/{{id}}".
+		var ignore []string
+		if res != "project" {
+			ignore = []string{res}
+		}
 		acctest.VcrTest(t, resource.TestCase{
 			PreCheck:                 func() { acctest.AccTestPreCheck(t) },
 			ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories(t),
@@ -492,7 +490,7 @@ func TestAccLoggingBucketConfig_CreateBuckets_withCustomId(t *testing.T) {
 					ResourceName:            fmt.Sprintf("google_logging_%s_bucket_config.basic", res),
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{res},
+					ImportStateVerifyIgnore: ignore,
 				},
 			},
 		})
@@ -638,19 +636,17 @@ func TestAccLoggingBucketConfigProject_indexConfigs(t *testing.T) {
 				Config: testAccLoggingBucketConfigProject_indexConfigs(context, "INDEX_TYPE_STRING", "INDEX_TYPE_STRING"),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccLoggingBucketConfigProject_indexConfigs(context, "INDEX_TYPE_STRING", "INDEX_TYPE_INTEGER"),
 			},
 			{
-				ResourceName:            "google_logging_project_bucket_config.basic",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"project"},
+				ResourceName:      "google_logging_project_bucket_config.basic",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
